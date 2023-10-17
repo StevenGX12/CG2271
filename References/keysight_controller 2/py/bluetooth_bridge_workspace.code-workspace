@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../../gimbal_control_v0.1"
+		},
+		{
+			"name": "ESP32toArduinoSerialBluetoothBridge",
+			"path": "../../ESP32toArduinoSerialBluetoothBridge"
+		},
+		{
+			"name": "serial_client",
+			"path": "../../serial_client"
+		}
+	],
+	"settings": {}
+}
