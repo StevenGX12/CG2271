@@ -31,7 +31,7 @@
 #define TXD0 1
 
 // Create a UART object
-HardwareSerial SerialKL25(0); // UART0 on the ESP32
+// HardwareSerial SerialKL25(0); // UART0 on the ESP32
 
 PS2X ps2x; // create PS2 Controller Class
 
@@ -47,7 +47,7 @@ int tryNum = 1;
 void setup()
 {
     Serial.begin(115200);
-    SerialKL25.begin(9600); // Baud rate should match the KL25 configuration
+    // SerialKL25.begin(9600); // Baud rate should match the KL25 configuration
 
     // added delay to give wireless ps2 module some time to startup, before configuring it
     // CHANGES for v1.6 HERE!!! **************PAY ATTENTION*************
@@ -63,6 +63,12 @@ void setup()
     }
 
     Serial.println(ps2x.Analog(1), HEX);
+}
+
+void printBinary(byte val){
+  for (int i = 7; i>=0; i--){
+    Serial.print(bitRead(val,i));
+  }
 }
 
 void loop()
@@ -96,7 +102,7 @@ void loop()
     // Serial.println(rightYBinary, BIN);
 
     // Create a buffer to hold the payload
-    uint8_t payload[5]; // Adjust the size as needed
+    uint8_t payload[4]; // Adjust the size as needed
     // Initialize data packets for left and right drive trains
     uint8_t leftDataPacket = 0;
     uint8_t rightDataPacket = 0;
@@ -159,16 +165,16 @@ void loop()
     payload[1] = leftDataPacket;
     payload[2] = rightDataPacket;
     payload[3] = endByte;
-    payload[4] = 0; // Add more bytes as needed
 
     // Send the payload over UART to KL25
-    SerialKL25.write(payload, sizeof(payload));
-
+    // SerialKL25.write(payload, sizeof(payload));
+   
     // Print the payload (for testing)
     Serial.print("Payload: ");
     for (int i = 0; i < sizeof(payload); i++)
     {
-        Serial.print(payload[i], BIN);
+        // Serial.print(payload[i], BIN);
+        printBinary(payload[i]);
         Serial.print(" ");
     }
     Serial.println();
