@@ -108,7 +108,7 @@ void loop()
     uint8_t rightDataPacket = 0;
     // Create a start byte and an end byte
     uint8_t startByte = 0b00000011; // Start byte with LSB '11'
-    uint8_t endByte = 0b00000011;   // End byte with LSB '11'
+    uint8_t endByte = 0b01111111;   // End byte with LSB '11'
 
     // Process the left joystick Y value
     if (leftJoystickY == 128)
