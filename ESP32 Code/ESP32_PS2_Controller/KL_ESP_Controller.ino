@@ -48,7 +48,7 @@ int tryNum = 1;
 void setup()
 {
     Serial.begin(9600);
-    SerialKL25.begin(9600); // Baud rate should match the KL25 configuration
+    SerialKL25.begin(9600, SERIAL_8N1, RXD0, TXD0); // Baud rate should match the KL25 configuration
 
     // added delay to give wireless ps2 module some time to startup, before configuring it
     // CHANGES for v1.6 HERE!!! **************PAY ATTENTION*************
@@ -68,7 +68,7 @@ void setup()
 
 void printBinary(byte val){
   for (int i = 7; i>=0; i--){
-    Serial.print(bitRead(val,i));
+    SerialKL25.print(bitRead(val,i));
   }
 }
 
@@ -76,21 +76,7 @@ void loop()
 {
     ps2x.read_gamepad(false, vibrate); // read controller and set large motor to spin at 'vibrate' speed
     Serial.print("Stick Values:");
-
-    int leftJoystickY = ps2x.Analog(PSS_LY);
-    int rightJoystickY = ps2x.Analog(PSS_RY);
-    Serial.print(leftJoystickY);
-    Serial.print(",");
-    Serial.println(rightJoystickY);
-
-    // convert to a binary format for the motor controller where 128 is the centred position for the joystick
-    // and 0 is full forward and 255 is full reverse
-    // but convert to MSB for the sign bit
-    // and the rest of the bits are the magnitude
-    // so 128 is 10000000
-    // and 0 is 00000000
-    // and 255 is 11111111
-
+    
     // Create a buffer to hold the payload
     uint8_t payload[4]; // Adjust the size as needed
     // Initialize data packets for left and right drive trains
@@ -99,6 +85,13 @@ void loop()
     // Create a start byte and an end byte
     uint8_t startByte = 0b00000011; // Start byte with LSB '11'
     uint8_t endByte = 0b01111111;   // End byte with LSB '11'
+
+    // Tank Drive
+    int leftJoystickY = ps2x.Analog(PSS_LY);
+    int rightJoystickY = ps2x.Analog(PSS_RY);
+    Serial.print(leftJoystickY);
+    Serial.print(",");
+    Serial.println(rightJoystickY);
 
     // Process the left joystick Y value
     if (leftJoystickY == 128)
@@ -123,6 +116,7 @@ void loop()
     {
         leftScaledValue = (uint8_t)(((leftJoystickY - 128) / 127.0) * 63);
     }
+
     leftDataPacket |= leftScaledValue << 2; // 6-bit scaled value is stored in bits 2 to 7 of the leftDataPacket byte.
 
     // Process the right joystick Y value (similar to left joystick)
@@ -150,8 +144,54 @@ void loop()
     }
     rightDataPacket |= rightScaledValue << 2; // 6-bit scaled value is stored in bits 2 to 7 of the rightDataPacket byte.
 
+
+    /* Drift */
+    if(ps2x.Button(PSB_L2)){ 
+        Serial.println("L2 pressed, drifting left");
+        // left half speed of right
+        leftDataPacket = 0b00111101;
+        rightDataPacket = 0b11111101;
+    }
+    else if(ps2x.Button(PSB_R2)){
+        Serial.println("R2 pressed, drifting right");
+        // right half speed of left
+        leftDataPacket = 0b11111101;
+        rightDataPacket = 0b00111101;
+    }
+
+    /* Cap half speed */
+    if (ps2x.Button(PSB_L1) && ps2x.Button(PSB_R1)){
+          Serial.println("L1 & R1 pressed, capping at 50% speed");
+          // bitshift right by 1 for index 2-7
+          // Create a bit mask to isolate bits 2 to 7
+          unsigned char mask = 0b11111100;
+
+          // Extract the bits within the range (bits 2 to 7)
+          unsigned char extractedLeftBits = (leftDataPacket & mask) >> 2;
+          unsigned char extractedRightBits = (rightDataPacket & mask) >> 2;
+
+          // Perform the right bit shift operation
+          unsigned char shiftedLeftBits = extractedLeftBits >> 1;
+          unsigned char shiftedRightBits = extractedRightBits >> 1;
+
+          // Clear the original bits 2 to 7 in the data packet
+          leftDataPacket &= ~mask;
+          rightDataPacket &= ~mask;
+
+          // Combine the shifted bits with the original data packet
+          leftDataPacket |= (shiftedLeftBits << 2);
+          rightDataPacket |= (shiftedRightBits << 2);
+    }
+
+    /*Ending Music -Activate when Square pressed OR released */
+    if(ps2x.NewButtonState(PSB_SQUARE))      {
+      Serial.println("Square just released");     
+      leftDataPacket = 0b00101011;
+      rightDataPacket = 0b00101011;
+    }       
+
     // Copy the bytes into the payload
-    payload[0] = startByte;
+    payload[0] = startByte; 
     payload[1] = leftDataPacket;
     payload[2] = rightDataPacket;
     payload[3] = endByte;
@@ -163,15 +203,15 @@ void loop()
     SerialKL25.write(payload, sizeof(payload));
    
     // Print the payload (for testing)
-    Serial.print("Payload: ");
+    SerialKL25.print("Payload: ");
     for (int i = 0; i < sizeof(payload); i++)
     {
         // Serial.print(payload[i], BIN);
         printBinary(payload[i]);
-        Serial.print(" ");
+        SerialKL25.print(" ");
     }
-    Serial.println();
+    SerialKL25.println();
 
     // Add a delay or adjust timing based on your application requirements
-    delay(100);
+    // delay(10);
 }
