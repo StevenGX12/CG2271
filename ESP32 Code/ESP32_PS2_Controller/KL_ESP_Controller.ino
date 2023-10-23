@@ -1,8 +1,6 @@
 /*
 TODO:
-- Arcade Drive after pressing "X"
-- 1/3 speed for the drifting (because it is later scaled via voltages)
-- 1/3 speed for the capping speed also
+- increase a wider range for stop 127-129 for reliability
 */
 
 #include <PS2X_lib.h> //for v1.6
@@ -110,32 +108,42 @@ void loop()
       int forwardSpeed = leftJoystickY - 128;  // This will give us a range from -128 to 127.
       int turningValue = rightJoystickX - 128; // Same range, negative for left turn, positive for right.
 
-      int leftMotorSpeed = constrain(forwardSpeed + turningValue, -127, 127);
-      int rightMotorSpeed = constrain(forwardSpeed - turningValue, -127, 127);
+      int leftMotorSpeed, rightMotorSpeed;
+
+      if (turningValue < 0) { // Turning left
+          leftMotorSpeed = constrain(forwardSpeed + abs(turningValue), -127, 127);  // Decrease left motor speed
+          rightMotorSpeed = constrain(forwardSpeed - abs(turningValue), -127, 127); // Increase right motor speed
+      } else if(turningValue > 0) { // Turning right
+          leftMotorSpeed = constrain(forwardSpeed - turningValue, -127, 127); 
+          rightMotorSpeed = constrain(forwardSpeed + turningValue, -127, 127); 
+      } else{ // not moving
+          leftMotorSpeed = constrain(forwardSpeed, -127, 127); 
+          rightMotorSpeed = constrain(forwardSpeed, -127, 127); 
+      }
 
       // Process the left motor speed
       if (leftMotorSpeed == 0) {
         leftDataPacket |= 0b00 << 0;
-      } else if (leftMotorSpeed > 0) {
+      } else if (leftMotorSpeed < 0) {
         // go forward
         leftDataPacket |= 0b01 << 0;
+        leftMotorSpeed = abs(leftMotorSpeed);  // Convert to positive for leftDataPacket.
       } else {
       // go backward
         leftDataPacket |= 0b10 << 0;
-        leftMotorSpeed = abs(leftMotorSpeed);  // Convert to positive for leftDataPacket.
       }
       leftDataPacket |= (uint8_t)((leftMotorSpeed / 127.0) * 63) << 2;
 
       // Process the right motor speed
       if (rightMotorSpeed == 0) {
         rightDataPacket |= 0b00 << 0;
-      } else if (rightMotorSpeed > 0) {
+      } else if (rightMotorSpeed < 0) {
         // go forward
         rightDataPacket |= 0b01 << 0;
+        rightMotorSpeed = abs(rightMotorSpeed);  // Convert to positive for rightDataPacket.
       } else {
         // go backward
         rightDataPacket |= 0b10 << 0;
-        rightMotorSpeed = abs(rightMotorSpeed);  // Convert to positive for rightDataPacket.
       }
       rightDataPacket |= (uint8_t)((rightMotorSpeed / 127.0) * 63) << 2;
       }
