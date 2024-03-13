@@ -1,1 +1,2 @@
-# F1Racing
+# CG2271 Real-Time Operating System  
+This project is a robotic vehicle built using a FRDM-KL25 board which uses a 32-bit Cortex M0+ Processor Core. The Keil RTX, a royalty-free, deterministic Real-Time Operating System designed for ARM and Cortex-M devices is used for thread(task) scheduling. The robotic vehicle also uses an ESP32 microcontroller for wireless communication and control using a PS4 controller. 
